@@ -95,10 +95,8 @@ class HTTPServer:
         content = bytearray()
         if isinstance(content_length, int):
             chunk = 1024
-            total = 0
-            while total < content_length:
+            while len(content) < content_length:
                 content.extend(await reader.read(chunk))
-                total += chunk
         if 'Host' in headers:
             if isinstance(headers['Host'], tuple):
                 h = headers['Host'][0]
