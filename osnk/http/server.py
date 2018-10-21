@@ -250,10 +250,18 @@ if __name__ == '__main__':
     @requires(token)
     async def get(request, path):
         p = pathlib.Path.cwd() / path.replace('..', '')
-        if p.is_file():
+        if p.is_dir():
+            r = []
+            for x in p.iterdir():
+                if x.is_dir():
+                    size = sum(y.stat().st_size for y in x.glob('**/*')
+                               if y.is_file())
+                    r.append((x.name, size))
+                else:
+                    r.append((x.name, x.stat().st_size))
+            return sorted(r)
+        elif p.is_file():
             return p
-        elif p.is_dir():
-            return sorted((x.name, x.stat().st_size) for x in p.iterdir())
 
     @server.route('/(.*)', methods=['POST'])
     @requires(token)
