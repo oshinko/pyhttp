@@ -92,7 +92,10 @@ class HTTPServer:
             headers['Content-Length'] = stream.content_length
         except ValueError:
             if 'Content-Type' not in headers:
-                raise ValueError('content-type is required')
+                try:
+                    headers['Content-Type'] = content.content_type
+                except AttributeError:
+                    raise ValueError('content-type is required')
             stream = content
         if self.debug:
             print('[{}] "{} {}" {}'.format(
