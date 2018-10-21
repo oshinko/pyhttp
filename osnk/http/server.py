@@ -64,6 +64,58 @@ class HTTPServer:
 
         return wrapper
 
+    async def write_response(self, writer, method, path, query, resp):
+        max_returns = 3
+        min_returns = 1
+        if not isinstance(resp, tuple):
+            resp = resp,
+        resp = resp[:max_returns]
+        returns = len(resp)
+        if returns < min_returns:
+            m = 'not enough values to unpack (expected {}, got {})'
+            raise ValueError(m.format(min_returns, returns))
+        for _ in range(max_returns - returns):
+            resp += None,
+        content, status, headers = resp
+        if not status:
+            status = 200
+        headers = Headers(headers)
+        for k, v in self.headers:
+            headers[k] = v
+        if 'Date' not in headers:
+            d = datetime.datetime.utcnow()
+            headers['Date'] = d.strftime('%a, %d, %b %Y %H:%M:%S GMT')
+        try:
+            stream = ContentStream(content, self.charset)
+            if 'Content-Type' not in headers and stream.content_type:
+                headers['Content-Type'] = stream.content_type
+            headers['Content-Length'] = stream.content_length
+        except ValueError:
+            if 'Content-Type' not in headers:
+                raise ValueError('content-type is required')
+            stream = content
+        if self.debug:
+            print('[{}] "{} {}" {}'.format(
+                datetime.datetime.now(), method,
+                path + '?' + query if query else path, status))
+        writer.write('HTTP/1.1 {}'.format(status).encode(self.charset))
+        writer.write(self.newline)
+        for name, value in headers:
+            writer.write(name.encode(self.charset))
+            writer.write(': '.encode(self.charset))
+            writer.write(str(value).encode(self.charset))
+            writer.write(self.newline)
+        writer.write(self.newline)
+        await writer.drain()
+        async with stream as s:
+            try:
+                while True:
+                    b = await s.__aiter__().__anext__()
+                    writer.write(b)
+                    await writer.drain()
+            except StopAsyncIteration:
+                pass
+
     async def handle(self, reader, writer, method, path, query):
         handler = None
         raw_headers = []
@@ -127,75 +179,26 @@ class HTTPServer:
                 resp = await self._not_found()
         else:
             resp = await self._not_found()
-        max_returns = 3
-        min_returns = 1
-        if not isinstance(resp, tuple):
-            resp = resp,
-        resp = resp[:max_returns]
-        returns = len(resp)
-        if returns < min_returns:
-            m = 'not enough values to unpack (expected {}, got {})'
-            raise ValueError(m.format(min_returns, returns))
-        for _ in range(max_returns - returns):
-            resp += None,
-        content, status, headers = resp
-        if not status:
-            status = 200
-        headers = Headers(headers)
-        for k, v in self.headers:
-            headers[k] = v
-        if 'Date' not in headers:
-            d = datetime.datetime.utcnow()
-            headers['Date'] = d.strftime('%a, %d, %b %Y %H:%M:%S GMT')
-        try:
-            stream = ContentStream(content, self.charset)
-            if 'Content-Type' not in headers and stream.content_type:
-                headers['Content-Type'] = stream.content_type
-            headers['Content-Length'] = stream.content_length
-        except ValueError:
-            if 'Content-Type' not in headers:
-                raise ValueError('content-type is required')
-            stream = content
-        if self.debug:
-            print('[{}] "{} {}" {}'.format(
-                datetime.datetime.now(), method,
-                path + '?' + query if query else path, status))
-        writer.write('HTTP/1.1 {}'.format(status).encode(self.charset))
-        writer.write(self.newline)
-        for name, value in headers:
-            writer.write(name.encode(self.charset))
-            writer.write(': '.encode(self.charset))
-            writer.write(str(value).encode(self.charset))
-            writer.write(self.newline)
-        writer.write(self.newline)
-        await writer.drain()
-        async with stream as s:
-            try:
-                while True:
-                    b = await s.__aiter__().__anext__()
-                    writer.write(b)
-                    await writer.drain()
-            except StopAsyncIteration:
-                pass
+        await self.write_response(writer, method, path, query, resp)
 
     async def callback(self, reader, writer):
         try:
             first = await reader.readline()
             m = self.first_line.search(first.decode())
             if m:
+                method, uri = m.groups()
+                method = method.upper()
+                parts = uri.split('?', 1)
+                if len(parts) == 1:
+                    path, = parts
+                    query = None
+                else:
+                    path, query = parts
                 try:
-                    method, uri = m.groups()
-                    method = method.upper()
-                    parts = uri.split('?', 1)
-                    if len(parts) == 1:
-                        path, = parts
-                        query = None
-                    else:
-                        path, query = parts
                     await self.handle(reader, writer, method, path, query)
                 except Exception as e:
                     r = await self._error()
-                    await self.write_response(writer, r)
+                    await self.write_response(writer, method, path, query, r)
                     raise e
         except Exception:
             print(traceback.format_exc(), file=sys.stderr)
