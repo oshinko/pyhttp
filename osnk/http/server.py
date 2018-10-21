@@ -267,8 +267,7 @@ if __name__ == '__main__':
     @requires(token)
     async def post(request, path):
         p = pathlib.Path.cwd() / path.replace('..', '')
-        if not p.parent.exists():
-            p.parent.mkdir(parents=True, exist_ok=True)
+        p.parent.mkdir(parents=True, exist_ok=True)
         with p.open('ab') as f:
             f.write(request.content)
         return None, 200
