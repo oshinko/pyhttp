@@ -1,4 +1,8 @@
+import sys
 from setuptools import setup
+
+if sys.version_info < (3, 5, 2):
+    raise RuntimeError('Python < 3.5.2 is not supported')
 
 setup(
     name='http',
@@ -11,6 +15,7 @@ setup(
     packages=['osnk.http'],
     classifiers=[
         'Programming Language :: Python',
+        'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',

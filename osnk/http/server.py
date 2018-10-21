@@ -111,13 +111,9 @@ class HTTPServer:
         writer.write(self.newline)
         await writer.drain()
         async with stream as s:
-            try:
-                while True:
-                    b = await s.__aiter__().__anext__()
-                    writer.write(b)
-                    await writer.drain()
-            except StopAsyncIteration:
-                pass
+            async for b in s:
+                writer.write(b)
+                await writer.drain()
 
     async def handle(self, reader, writer, method, path, query):
         handler = None
