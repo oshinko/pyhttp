@@ -218,7 +218,8 @@ class HTTPServer:
 if __name__ == '__main__':
     port = sys.argv[1]
     token = sys.argv[2] if len(sys.argv) > 2 else None
-    server = HTTPServer(port=port, debug=True)
+    server = HTTPServer(port=port, debug=True,
+                        headers={'Access-Control-Allow-Origin': '*'})
 
     import functools
 
