@@ -156,7 +156,7 @@ class HTTPServer:
             if ':' in h:
                 host = h.split(':')[0]
             else:
-                host = s
+                host = h
         else:
             host = self.host
         url = 'http', host, self.port, path, query
