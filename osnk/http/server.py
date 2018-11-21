@@ -160,7 +160,7 @@ class HTTPServer:
         else:
             host = self.host
         url = 'http', host, self.port, path, query
-        request = Request(method, url, headers, content)
+        request = Request(writer.transport, method, url, headers, content)
         resources = []
         for x, y, z in self.handlers:
             m = y.match(path)
@@ -195,10 +195,12 @@ class HTTPServer:
                     path, query = parts
                 try:
                     await self.handle(reader, writer, method, path, query)
-                except Exception as e:
+                except ConnectionError:
+                    raise
+                except Exception:
                     r = await self._error()
                     await self.write_response(writer, method, path, query, r)
-                    raise e
+                    raise
         except Exception:
             print(traceback.format_exc(), file=sys.stderr)
         finally:

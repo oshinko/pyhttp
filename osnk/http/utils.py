@@ -183,7 +183,8 @@ class Arguments:
 
 
 class Request:
-    def __init__(self, method, url, headers, content):
+    def __init__(self, transport, method, url, headers, content):
+        self.transport = transport
         self.method = method
         self.url = url
         if isinstance(url, (list, tuple)):
