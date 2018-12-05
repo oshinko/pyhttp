@@ -127,8 +127,8 @@ def request(*args, **kwargs):
     return RequestContextManager(*args, **kwargs)
 
 
-def get(url):
-    return request(url)
+def get(url, *, headers=None):
+    return request(url, headers=headers)
 
 
 def post(url, *, headers=None, data=None):
