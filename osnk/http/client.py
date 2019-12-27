@@ -2,17 +2,7 @@ import asyncio
 import re
 import ssl
 import urllib.parse
-from .utils import Headers
-
-
-class Response:
-    def __init__(self, reader, writer, status, response_headers,
-                 response_content, request_headers, content):
-        self.reader = reader
-        self.writer = writer
-        self.status = status
-        self.headers = response_headers
-        self.content = response_content
+from .utils import Headers, Response
 
 
 class RequestContextManager:
@@ -117,7 +107,7 @@ class RequestContextManager:
                 while len(response_content) < content_length:
                     response_content.extend(await reader.read(chunk))
             return Response(reader, self.writer, status, response_headers,
-                            response_content, request_headers, content)
+                            response_content)
 
     async def __aexit__(self, exc_type, exc, tb):
         self.writer.close()

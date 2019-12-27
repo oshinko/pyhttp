@@ -228,3 +228,12 @@ class Request:
         return "{}('{}', {}, {}, {})".format(self.__class__.__name__,
                                              self.method, self.url,
                                              self.headers, self.content)
+
+
+class Response:
+    def __init__(self, reader, writer, status, headers, content):
+        self.reader = reader
+        self.writer = writer
+        self.status = status
+        self.headers = headers
+        self.content = content
