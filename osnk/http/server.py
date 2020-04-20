@@ -210,13 +210,8 @@ class HTTPServer:
         if not loop:
             loop = asyncio.get_event_loop()
         self.loop = loop
-        coro = asyncio.start_server(self.callback, self.host, self.port,
+        return asyncio.start_server(self.callback, self.host, self.port,
                                     loop=self.loop)
-        self._server = self.loop.run_until_complete(coro)
-
-    def close(self):
-        self._server.close()
-        self.loop.run_until_complete(self._server.wait_closed())
 
 
 if __name__ == '__main__':
@@ -300,7 +295,7 @@ if __name__ == '__main__':
                            'Access-Control-Allow-Headers': 'Authorization'}
 
     loop = asyncio.get_event_loop()
-    server.start(loop)
+    results = loop.run_until_complete(server.start(loop))
     start = 'Serving HTTP on {host} port {port} (http://{host}:{port}) ...'
     print(start.format(host=server.host, port=server.port))
 
@@ -309,5 +304,6 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         pass
     finally:
-        server.close()
+        results.close()
+        loop.run_until_complete(results.wait_closed())
         loop.close()
